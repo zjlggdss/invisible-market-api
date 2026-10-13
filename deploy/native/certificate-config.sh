@@ -12,7 +12,7 @@ if [ -f "$certificate_config" ]; then
 fi
 PUBLIC_IP=${requested_public_ip:-${PUBLIC_IP:-}}
 CERT_NAME=${requested_cert_name:-${CERT_NAME:-invisible-market}}
-: "${PUBLIC_IP:?Set PUBLIC_IP to this server's public IPv4 address, or run setup-certbot.sh first}"
+: "${PUBLIC_IP:?Set PUBLIC_IP to the server public IPv4 address, or run setup-certbot.sh first}"
 if [[ ! "$CERT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
   echo 'CERT_NAME must contain only letters, digits, dots, underscores or hyphens.' >&2
   exit 1
