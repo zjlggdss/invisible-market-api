@@ -1,0 +1,23 @@
+{
+  "name": "invisible-market-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-only product upload, recommendation, feedback and weekly reporting APIs powered by Alibaba Cloud Model Studio.",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/zjlggdss/invisible-market-api.git" },
+  "bugs": { "url": "https://github.com/zjlggdss/invisible-market-api/issues" },
+  "homepage": "https://github.com/zjlggdss/invisible-market-api#readme",
+  "keywords": ["ai", "recommendation", "alibaba-cloud", "sqlite", "api"],
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --env-file=.env src/server.js",
+    "test": "node --test",
+    "check:public": "node scripts/check-publication.js"
+  },
+  "dependencies": {
+    "sharp": "0.35.5"
+  }
+}

@@ -1,0 +1,12 @@
+[Unit]
+Description=Check Invisible Market IP certificate renewal twice a day
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+OnCalendar=*-*-* 16:00:00
+RandomizedDelaySec=30m
+Persistent=true
+Unit=invisible-market-certbot-renew.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,37 @@
+[Unit]
+Description=Invisible Market API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=invisible-market
+Group=invisible-market
+WorkingDirectory=/opt/invisible-market
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=DATA_DIR=/opt/invisible-market/data
+Environment=PORT_UPLOAD=4101
+Environment=PORT_BEST=4102
+Environment=PORT_WORST=4103
+Environment=PORT_REPORT=4104
+ExecStart=/usr/bin/node --env-file=/opt/invisible-market/.env /opt/invisible-market/src/server.js
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/invisible-market/data
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

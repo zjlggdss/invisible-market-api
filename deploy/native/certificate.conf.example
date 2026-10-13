@@ -1,0 +1,5 @@
+# Copying this file is optional: setup-certbot.sh saves the supplied PUBLIC_IP
+# and CERT_NAME in /opt/invisible-market/certs/certificate.conf (root-only).
+# Replace this documentation address with your server's public IPv4 address.
+PUBLIC_IP=203.0.113.10
+CERT_NAME=invisible-market
