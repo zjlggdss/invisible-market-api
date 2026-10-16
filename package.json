@@ -1,6 +1,6 @@
 {
   "name": "invisible-market-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "AI-only product upload, recommendation, feedback and weekly reporting APIs powered by Alibaba Cloud Model Studio.",
   "license": "MIT",

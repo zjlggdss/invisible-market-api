@@ -28,14 +28,14 @@ async function readJson(req) {
   const chunks = [];
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > limit) throw new ApiError(413, 'BODY_TOO_LARGE', '请求内容过大');
+    if (size > limit) throw new ApiError(413, 'BODY_TOO_LARGE', 'Request body is too large');
     chunks.push(chunk);
   }
   try {
     const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid object');
     return value;
-  } catch { throw new ApiError(400, 'INVALID_JSON', '请求需要 JSON 对象'); }
+  } catch { throw new ApiError(400, 'INVALID_JSON', 'Request body must be a JSON object'); }
 }
 
 export function createServers(config, db, service) {
@@ -43,7 +43,7 @@ export function createServers(config, db, service) {
   const limitClient = clientLimiter(db, config);
   let activeAi = 0;
   const withAiSlot = async task => {
-    if (activeAi >= (config.maxConcurrentAi ?? 4)) throw new ApiError(429, 'BUSY', '服务繁忙，请稍后重试');
+    if (activeAi >= (config.maxConcurrentAi ?? 4)) throw new ApiError(429, 'BUSY', 'Service is busy; please try again later');
     activeAi++;
     try { return await task(); } finally { activeAi--; }
   };
@@ -54,14 +54,14 @@ export function createServers(config, db, service) {
       if (res.headersSent) { res.destroy(); return; }
       if (error instanceof ApiError) send(res, error.status, { error: { code: error.code, message: error.message } });
       else if (error instanceof AIUnavailableError) send(res, 503, { error: { code: 'AI_UNAVAILABLE', message: error.message } });
-      else { console.error(error); send(res, 500, { error: { code: 'INTERNAL_ERROR', message: '服务暂不可用' } }); }
+      else { console.error(error); send(res, 500, { error: { code: 'INTERNAL_ERROR', message: 'Service is temporarily unavailable' } }); }
     }
   });
   const auth = (req, res, owner = false) => {
     const clientId = owner ? authorized(req, config.ownerKey) && 'owner' :
       authenticateClient(db, req.headers.authorization);
     if (!clientId) {
-      send(res, 401, { error: { code: 'UNAUTHORIZED', message: '需要有效的访问令牌' } });
+      send(res, 401, { error: { code: 'UNAUTHORIZED', message: 'A valid access token is required' } });
       return null;
     }
     return clientId;
@@ -81,7 +81,7 @@ export function createServers(config, db, service) {
       const body = await readJson(req);
       return send(res, 201, await withAiSlot(() => service.confirmDraft(match[1], body)));
     }
-    send(res, 404, { error: { code: 'NOT_FOUND', message: '接口不存在' } });
+    send(res, 404, { error: { code: 'NOT_FOUND', message: 'Endpoint not found' } });
   });
   const recommend = mode => make(async (req, res) => {
     const clientId = auth(req, res);
@@ -98,23 +98,23 @@ export function createServers(config, db, service) {
       const body = await readJson(req);
       return send(res, 200, service.submitFeedback(match[1], body.feedback_token, body.result));
     }
-    send(res, 404, { error: { code: 'NOT_FOUND', message: '接口不存在' } });
+    send(res, 404, { error: { code: 'NOT_FOUND', message: 'Endpoint not found' } });
   });
   const report = make(async (req, res) => {
     if (!auth(req, res, true)) return;
     const pathname = new URL(req.url, 'http://localhost').pathname;
     if (req.method === 'GET' && pathname === '/reports/latest') {
       const result = latestReport(db);
-      if (!result) throw new ApiError(404, 'REPORT_NOT_FOUND', '暂无周报');
+      if (!result) throw new ApiError(404, 'REPORT_NOT_FOUND', 'No weekly report is available');
       return send(res, 200, result);
     }
     if (req.method === 'GET' && /^\/reports\/\d{4}-\d{2}-\d{2}$/.test(pathname)) {
       const result = reportForWeek(db, pathname.slice(9));
-      if (!result) throw new ApiError(404, 'REPORT_NOT_FOUND', '该周报不存在');
+      if (!result) throw new ApiError(404, 'REPORT_NOT_FOUND', 'Weekly report not found');
       return send(res, 200, result);
     }
     if (req.method === 'POST' && pathname === '/reports/run') return send(res, 200, generateWeeklyReport(db));
-    send(res, 404, { error: { code: 'NOT_FOUND', message: '接口不存在' } });
+    send(res, 404, { error: { code: 'NOT_FOUND', message: 'Endpoint not found' } });
   });
   return { upload, best: recommend('best'), worst: recommend('worst'), report };
 }

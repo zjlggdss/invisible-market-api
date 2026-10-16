@@ -16,12 +16,12 @@ function fixture() {
   const ai = {
     async analyzeProduct() { return {
       edited: false, distinct_exterior_views: true, description_matches: true,
-      proposed_description: '蓝色陶瓷杯', proposed_price_usd: 12.5, has_cavity: true,
-      tags: { product_type: '杯子', keywords: ['陶瓷', '蓝色'], age_group: '18-65' }
+      proposed_description: 'Blue ceramic cup', proposed_price_usd: 12.5, has_cavity: true,
+      tags: { product_type: 'Cup', keywords: ['ceramic', 'blue'], age_group: '18-65' }
     }; },
     async checkImages() { return { edited: false }; },
     async matchDescription() { return { matches: true }; },
-    async extractProfile() { return { likes: ['陶瓷'], country: '中国', age: 26, budget_usd: 20 }; }
+    async extractProfile() { return { likes: ['ceramic'], country: 'China', age: 26, budget_usd: 20 }; }
   };
   return { dir, db, ai, service: createService(db, ai, dir), close() { db.close(); fs.rmSync(dir, { recursive: true, force: true }); } };
 }
@@ -39,26 +39,26 @@ test('upload, confirm, recommend, feedback, weekly report', async () => {
   const f = fixture();
   try {
     const draft = await f.service.createDraft({ exterior_images: Array.from({ length: 6 }, (_, i) => photo(i)) });
-    assert.equal(draft.proposed_description, '蓝色陶瓷杯');
+    assert.equal(draft.proposed_description, 'Blue ceramic cup');
     assert.equal(draft.proposed_price_usd, 12.5);
     assert.equal(draft.interior_image_suggested, true);
     assert.equal(f.db.prepare('SELECT count(*) AS n FROM products').get().n, 0);
     const product = await f.service.confirmDraft(draft.draft_id, { accept_description: true, accept_price: true });
     assert.equal(product.price_usd, 12.5);
-    const recommendation = await f.service.recommend('喜欢陶瓷，26岁，住在中国，预算20美元', 'best');
+    const recommendation = await f.service.recommend('I like ceramics, am 26, live in China, and have a USD 20 budget.', 'best');
     assert.equal(recommendation.product.images.length, 6);
-    assert.equal(recommendation.product.description, '蓝色陶瓷杯');
+    assert.equal(recommendation.product.description, 'Blue ceramic cup');
     assert.equal('tags' in recommendation.product, false);
     assert.equal('profile' in recommendation, false);
     assert.deepEqual(JSON.parse(f.db.prepare('SELECT profile_json FROM recommendations WHERE id=?').get(recommendation.recommendation_id).profile_json),
       { has_preferences: true, budget_exceeded: false });
-    assert.equal(f.service.submitFeedback(recommendation.recommendation_id, recommendation.feedback_token, '适合我').status, 'saved');
+    assert.equal(f.service.submitFeedback(recommendation.recommendation_id, recommendation.feedback_token, 'suitable').status, 'saved');
     const week = previousWeek();
     f.db.prepare('UPDATE recommendations SET created_at=? WHERE id=?').run(new Date(new Date(week.start).getTime() + 86400_000).toISOString(), recommendation.recommendation_id);
     const report = generateWeeklyReport(f.db);
     assert.equal(report.feedback_count, 1);
     assert.equal(report.accuracy, 1);
-    assert.equal(report.by_product_type['杯子'].count, 1);
+    assert.equal(report.by_product_type.Cup.count, 1);
   } finally { f.close(); }
 });
 
@@ -73,15 +73,47 @@ test('rejects a forged image with a valid-looking JPEG header', async () => {
   } finally { f.close(); }
 });
 
+test('English and legacy feedback remain compatible with historical reports', async () => {
+  const f = fixture();
+  try {
+    const draft = await f.service.createDraft({ exterior_images: [photo(0), photo(1), photo(2)] });
+    await f.service.confirmDraft(draft.draft_id, { accept_description: true, accept_price: true });
+    const cases = [
+      ['best', 'suitable', 'suitable'], ['worst', 'unsuitable', 'unsuitable'],
+      ['best', 'unsuitable', 'unsuitable'], ['worst', 'suitable', 'suitable'],
+      ['best', '\u9002\u5408\u6211', 'suitable'],
+      ['worst', '\u4e0d\u9002\u5408\u6211', 'unsuitable']
+    ];
+    const week = previousWeek();
+    const createdAt = new Date(new Date(week.start).getTime() + 86400_000).toISOString();
+    for (const [mode, result, expected] of cases) {
+      const recommendation = await f.service.recommend('I like ceramics, am 26, and have a USD 20 budget.', mode);
+      assert.equal(recommendation.feedback_prompt, 'Rate this recommendation: suitable / unsuitable');
+      assert.throws(() => f.service.submitFeedback(recommendation.recommendation_id, recommendation.feedback_token, 'unknown'),
+        error => error.code === 'INVALID_FEEDBACK');
+      f.service.submitFeedback(recommendation.recommendation_id, recommendation.feedback_token, result);
+      assert.equal(f.db.prepare('SELECT feedback FROM recommendations WHERE id=?').get(recommendation.recommendation_id).feedback, expected);
+      // Simulate rows written by older versions without migrating private data.
+      f.db.prepare('UPDATE recommendations SET created_at=?,feedback=? WHERE id=?')
+        .run(createdAt, result, recommendation.recommendation_id);
+    }
+    const report = generateWeeklyReport(f.db);
+    assert.equal(report.feedback_count, 6);
+    assert.equal(report.correct_count, 4);
+    assert.equal(report.accuracy, 0.6667);
+    assert.deepEqual(report.by_mode, { best: { count: 3, correct: 2 }, worst: { count: 3, correct: 2 } });
+  } finally { f.close(); }
+});
+
 test('concurrent confirmations consume a draft only once', async () => {
   const f = fixture();
   try {
     const draft = await f.service.createDraft({ exterior_images: [photo(0), photo(1), photo(2)] });
     f.ai.matchDescription = async () => { await new Promise(resolve => setImmediate(resolve)); return { matches: true }; };
     const attempts = await Promise.allSettled([f.service.confirmDraft(draft.draft_id,
-      { accept_description: false, description: '陶瓷杯', accept_price: true }),
+      { accept_description: false, description: 'Ceramic cup', accept_price: true }),
     f.service.confirmDraft(draft.draft_id,
-      { accept_description: false, description: '陶瓷杯', accept_price: true })]);
+      { accept_description: false, description: 'Ceramic cup', accept_price: true })]);
     assert.equal(attempts.filter(result => result.status === 'fulfilled').length, 1);
     assert.equal(attempts.filter(result => result.status === 'rejected' && result.reason.code === 'DRAFT_ALREADY_CONFIRMED').length, 1);
     assert.equal(f.db.prepare('SELECT count(*) AS n FROM products').get().n, 1);
@@ -109,8 +141,8 @@ test('rejects edited metadata with code 114 and missing dimensions with code 66'
   try {
     await assert.rejects(f.service.createDraft({ exterior_images: Array.from({ length: 6 }, (_, i) => photo(i, i === 2)) }),
       error => error instanceof ApiError && error.code === 114);
-    f.ai.extractProfile = async () => ({ likes: ['陶瓷'], age: 26 });
-    await assert.rejects(f.service.recommend('喜欢陶瓷，26岁', 'worst'),
+    f.ai.extractProfile = async () => ({ likes: ['ceramic'], age: 26 });
+    await assert.rejects(f.service.recommend('I like ceramics and am 26.', 'worst'),
       error => error instanceof ApiError && error.code === 66);
   } finally { f.close(); }
 });
@@ -134,7 +166,7 @@ test('rejects an inconsistent seller description before saving a product', async
   const f = fixture();
   try {
     f.ai.analyzeProduct = async () => ({ edited: false, distinct_exterior_views: true, description_matches: false });
-    await assert.rejects(f.service.createDraft({ exterior_images: Array.from({ length: 6 }, (_, i) => photo(i)), description: '红色皮鞋', price_usd: 50 }),
+    await assert.rejects(f.service.createDraft({ exterior_images: Array.from({ length: 6 }, (_, i) => photo(i)), description: 'Red leather shoes', price_usd: 50 }),
       error => error instanceof ApiError && error.code === 'DESCRIPTION_MISMATCH');
     assert.equal(f.db.prepare('SELECT count(*) AS n FROM products').get().n, 0);
   } finally { f.close(); }
@@ -161,6 +193,7 @@ test('four HTTP ports enforce separate agent and owner keys', async () => {
     const url = name => `http://127.0.0.1:${servers[name].address().port}`;
     const unauthorized = await fetch(`${url('upload')}/products/drafts`, { method: 'POST' });
     assert.equal(unauthorized.status, 401);
+    assert.equal((await unauthorized.json()).error.message, 'A valid access token is required');
     const ownerOnAgent = await fetch(`${url('best')}/recommendations`, { method: 'POST', headers: { Authorization: `Bearer ${config.ownerKey}` } });
     assert.equal(ownerOnAgent.status, 401);
     const agentOnOwner = await fetch(`${url('report')}/reports/latest`, { headers: { Authorization: `Bearer ${config.agentKey}` } });

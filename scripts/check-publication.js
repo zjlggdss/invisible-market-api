@@ -21,7 +21,7 @@ if (!files.length) {
 }
 
 const forbidden = /(^|\/)(?:data|certs|node_modules|backups|releases|\.codex|\.agents)(?:\/|$)|(^|\/)\.env(?:$|\.(?!example$))|\.(?:pem|key|p12|pfx|sqlite(?:-wal|-shm)?|db|log)$/i;
-const localOnly = new Set(['deploy/known_hosts', '提示词.txt']);
+const localOnly = new Set(['deploy/known_hosts', '\u63d0\u793a\u8bcd.txt']);
 const secretPatterns = [
   /-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/,
   /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}\b/,

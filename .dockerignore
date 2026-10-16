@@ -11,7 +11,8 @@ certs/
 *.db
 backups/
 releases/
-提示词.txt
+# Local working notes
+/*.txt
 deploy/known_hosts
 .codex/
 .agents/

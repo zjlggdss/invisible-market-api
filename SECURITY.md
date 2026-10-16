@@ -1,20 +1,20 @@
-# 安全说明
+# Security
 
-## 报告安全问题
+## Reporting a security issue
 
-请通过维护者的私下渠道报告安全问题。若 GitHub 仓库已启用 Private vulnerability reporting，可在仓库的 Security 页面使用 “Report a vulnerability”。若尚未提供私下渠道，可以先通过公开 Issue 请求建立渠道，仅描述希望私下沟通，不附漏洞细节、利用代码、凭证或真实数据。
+Report security issues through a private channel with the maintainer. If the repository has GitHub private vulnerability reporting enabled, use **Report a vulnerability** on its Security page. If no private channel is available, open a public issue requesting one without including vulnerability details, exploit code, credentials, or real data.
 
-私下报告应包括受影响的版本或提交、触发条件、使用合成数据的复现步骤、预期影响和可选的修复建议。在问题得到处理前，请避免公开可直接利用的细节。项目目前未承诺固定的响应时间或长期维护周期。
+A private report should include the affected version or commit, triggering conditions, reproduction steps using synthetic data, expected impact, and any suggested fix. Avoid publishing directly exploitable details while the issue is being addressed. The project does not currently commit to a fixed response time or long-term maintenance schedule.
 
-## 凭证与数据
+## Credentials and data
 
-- `.env`、API 密钥、SSH 私钥、TLS 私钥、数据库、商品图片和用户数据不应提交到公开仓库，也不应出现在日志、Issue 或聊天截图中。
-- 公开 API 地址不包含访问权限。生产客户端账户请私下向维护者申请；不要共享或在浏览器代码中嵌入生产密钥。
-- 为每个受控 AI 客户端分配独立凭证，并通过客户端管理脚本撤销不再使用的账户。站主密钥仅用于报告接口。
-- 如凭证泄漏，先撤销或轮换凭证，再清理公开位置和版本历史；删除文件本身不能使已泄漏的凭证失效。
+- Keep `.env`, API keys, SSH private keys, TLS private keys, databases, product images, and user data out of public repositories, logs, issues, and chat screenshots.
+- Public API addresses do not grant access. Request a production client account privately from the maintainer. Do not share production keys or embed them in browser code.
+- Give each controlled AI client an individual credential and use the client management script to revoke accounts that are no longer needed. Reserve the owner key for report endpoints.
+- If a credential leaks, revoke or rotate it first, then remove it from public locations and version history. Deleting a file does not invalidate an exposed credential.
 
-## 独立部署
+## Independent deployments
 
-可使用自己的百炼账户、随机生成的不同密钥和独立数据目录部署完整服务。对外部署时配置 HTTPS、仅开放必要端口，并为报告端口设置来源白名单或使用 SSH 隧道。按 [deploy/README.md](deploy/README.md) 配置持久化、权限和备份。
+You can deploy the full service using your own Model Studio account, distinct randomly generated keys, and a separate data directory. Configure HTTPS, open only required ports, and restrict the report port with a source IP allowlist or an SSH tunnel. Follow [deploy/README.md](deploy/README.md) for persistence, permissions, and backups.
 
-请在自己的独立实例和合成数据上验证改动。未经授权，不对生产实例进行安全扫描、压力测试或尝试访问他人数据。
+Validate changes on your own instance using synthetic data. Do not scan, load-test, or attempt to access other people's data on a production instance without authorization.

@@ -1,23 +1,23 @@
-# 贡献指南
+# Contributing
 
-欢迎修复问题、改进文档和完善商品推荐服务。较大的功能改动请先通过 Issue 说明场景和预期行为，便于讨论范围。
+Contributions that fix bugs, improve documentation, or enhance the recommendation service are welcome. For larger changes, open an issue describing the use case and expected behavior first so the scope can be discussed.
 
-## 本地开发
+## Local development
 
-1. 使用 Node.js 24 或更高版本。
-2. 按 [README.md](README.md) 将 `.env.example` 复制为 `.env`，填写自己的密钥和百炼配置。
-3. 运行 `npm ci` 安装依赖，运行 `npm test` 检查现有测试。
-4. 使用 `npm start` 启动本地 API。需要模型调用时，使用自己的百炼账户，避免向生产实例写入测试数据。
+1. Use Node.js 24 or later.
+2. Follow [README.md](README.md) to copy `.env.example` to `.env` and enter your own keys and Model Studio configuration.
+3. Run `npm ci` to install dependencies, then `npm test` to run the existing tests.
+4. Start the local API with `npm start`. Use your own Model Studio account for real model calls and keep test data out of the production instance.
 
-## 提交改动
+## Submitting changes
 
-- 每个 Pull Request 聚焦一个问题，说明触发条件、修改后的行为和验证结果。
-- 接口或配置变化同步更新 README、示例配置与相关部署说明。
-- 影响行为的改动补充有意义的测试，并在提交前运行 `npm test`。
-- 将准备公开的文件暂存后，运行 `npm run check:public` 检查暂存内容和本地文件中的常见凭证泄漏。
-- 不提交 `.env`、API 密钥、证书私钥、数据库、商品照片或真实用户数据。测试使用合成内容和独立数据目录。
-- 依赖更新保留 `package-lock.json`，说明新增依赖的用途。
+- Keep each pull request focused on one problem. Explain the trigger, resulting behavior, and validation performed.
+- Update the README, example configuration, and deployment documentation when changing an API or configuration.
+- Add meaningful tests for behavior changes and run `npm test` before submitting.
+- After staging the files intended for publication, run `npm run check:public` to check staged content and local files for common credential leaks.
+- Do not commit `.env`, API keys, private certificate keys, databases, product photos, or real user data. Use synthetic content and separate data directories for tests.
+- Keep `package-lock.json` updated when changing dependencies and explain the purpose of new dependencies.
 
-请勿在公开 Issue 或 Pull Request 中披露凭证或可被直接利用的安全问题，按 [SECURITY.md](SECURITY.md) 处理。
+Do not disclose credentials or exploitable security issues in public issues or pull requests. Follow [SECURITY.md](SECURITY.md) instead.
 
-提交贡献即表示同意将该贡献按项目的 [MIT License](LICENSE) 许可发布。
+By contributing, you agree to release your contribution under the project's [MIT License](LICENSE).

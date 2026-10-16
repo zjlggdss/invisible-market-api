@@ -1,11 +1,11 @@
-## 改动
+## Changes
 
-说明解决的问题和改动后的行为。
+Describe the problem being solved and the resulting behavior.
 
-## 验证
+## Validation
 
-- [ ] `npm test` 通过
-- [ ] `npm run check:public` 通过
-- [ ] 涉及接口或部署方式时，已更新相应文档
+- [ ] `npm test` passes.
+- [ ] `npm run check:public` passes.
+- [ ] Relevant documentation is updated for API or deployment changes.
 
-请勿提交密钥、生产数据、用户图片或日志。
+Do not include credentials, production data, user images, or logs.

@@ -28,7 +28,7 @@ param(
 $ErrorActionPreference = 'Stop'
 foreach ($filePath in @($KeyPath, $KnownHostsPath)) {
     if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
-        throw "找不到指定的 SSH 文件：$filePath"
+        throw "SSH file not found: $filePath"
     }
 }
 $resolvedKeyPath = (Resolve-Path -LiteralPath $KeyPath).Path
@@ -36,7 +36,7 @@ $resolvedKnownHostsPath = (Resolve-Path -LiteralPath $KnownHostsPath).Path
 $knownHostsOption = 'UserKnownHostsFile="' + $resolvedKnownHostsPath.Replace('\', '/') + '"'
 Get-Command ssh -ErrorAction Stop | Out-Null
 
-Write-Host "周报接口将通过 SSH 映射到 http://127.0.0.1:$LocalPort 。保持此窗口运行，按 Ctrl+C 关闭。"
+Write-Host "The report endpoint will be forwarded over SSH to http://127.0.0.1:${LocalPort}. Keep this window open; press Ctrl+C to close the tunnel."
 $sshArguments = @(
     '-i', $resolvedKeyPath,
     '-p', "$SshPort",
@@ -52,5 +52,5 @@ $sshArguments = @(
 )
 & ssh @sshArguments
 if ($LASTEXITCODE -ne 0) {
-    throw "SSH 通道退出，状态码：$LASTEXITCODE"
+    throw "SSH tunnel exited with code $LASTEXITCODE"
 }

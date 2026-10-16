@@ -6,7 +6,7 @@ import { createAI } from '../../src/ai.js';
 
 const config = configFromEnv();
 const ai = createAI(config);
-const profile = await ai.extractProfile('我今年30岁，住在中国，喜欢芝麻酱味零食。');
+const profile = await ai.extractProfile('I am 30 years old, live in China, and like sesame paste-flavored snacks.');
 if (profile.age !== 30 || !Array.isArray(profile.likes)) {
   throw new Error('Text model response has an unexpected shape');
 }

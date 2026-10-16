@@ -34,7 +34,7 @@ export function clientLimiter(db, config) {
     const minute = Math.floor(Date.now() / 60_000);
     const current = minutes.get(clientId);
     const count = current?.minute === minute ? current.count : 0;
-    if (count >= minuteLimit) throw new ApiError(429, 'RATE_LIMIT', '请求过于频繁，请稍后重试');
+    if (count >= minuteLimit) throw new ApiError(429, 'RATE_LIMIT', 'Too many requests; please try again later');
     minutes.set(clientId, { minute, count: count + 1 });
     if (minutes.size > 10000) for (const [id, state] of minutes) if (state.minute < minute) minutes.delete(id);
     if (!kind) return;
@@ -42,7 +42,7 @@ export function clientLimiter(db, config) {
     const limit = kind === 'upload' ? (config.uploadsPerDay ?? 20) : (config.recommendationsPerDay ?? 200);
     const day = new Date().toISOString().slice(0, 10);
     const prior = db.prepare(`SELECT ${field} AS count FROM api_usage WHERE client_id=? AND day=?`).get(clientId, day)?.count || 0;
-    if (prior >= limit) throw new ApiError(429, 'DAILY_LIMIT', '今日调用额度已用完');
+    if (prior >= limit) throw new ApiError(429, 'DAILY_LIMIT', 'Daily request quota exhausted');
     db.prepare(`INSERT INTO api_usage (client_id,day,${field}) VALUES (?,?,1)
       ON CONFLICT(client_id,day) DO UPDATE SET ${field}=${field}+1`).run(clientId, day);
   };

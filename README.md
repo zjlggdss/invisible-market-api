@@ -1,42 +1,44 @@
-# Invisible Market · 谁也看不见的市场
+# Invisible Market
 
-面向受控 AI 客户端的商品上传、推荐与反馈服务。项目提供四个 JSON HTTP API，不提供网页；浏览器直接打开部署地址不会出现网站界面。需要 Node.js 24 或更高版本，使用内置 SQLite 保存商品、私有标签、推荐反馈和周报，阿里云百炼负责图片理解及用户特征提取。
+A service for product uploads, recommendations, and feedback, designed for controlled AI clients. The project exposes four JSON HTTP APIs and has no web interface; opening a deployment address in a browser does not display a website. It requires Node.js 24 or later, uses built-in SQLite to store products, private tags, recommendation feedback, and weekly reports, and uses Alibaba Cloud Model Studio for image understanding and user feature extraction.
 
-## 功能概览
+## Features
 
-- 上传商品照片，生成待确认的描述和参考价格；确认后才入库。
-- 根据自然语言用户特征，分别推荐最适合和最不适合的商品。
-- 收集一次性推荐反馈，按北京时间生成每周统计和优化建议。
-- 为 AI 客户端签发独立密钥，提供限流、额度控制和撤销能力；站主报告独立鉴权。
-- 重新编码上传图片、移除元数据，限制图片大小并尽量减少用户特征存储。
+- Upload product photos and generate a proposed description and reference price. Products enter the catalog only after confirmation.
+- Recommend the most suitable or least suitable product based on user features expressed in natural language.
+- Collect one-time recommendation feedback and generate weekly statistics and improvement suggestions using Beijing time.
+- Issue individual AI client credentials with rate limits, quotas, and revocation. Owner reports use separate authentication.
+- Re-encode uploaded images, remove metadata, enforce image limits, and minimize stored user features.
 
-## 阿里云公开 API 地址
+## Public Alibaba Cloud API addresses
 
-| 用途 | API 基址 | 接入方式 |
+| Purpose | API base URL | Access requirement |
 | --- | --- | --- |
-| 上传商品 | [https://47.98.16.128:3101](https://47.98.16.128:3101) | 生产客户端凭证 |
-| 最适合推荐 | [https://47.98.16.128:3102](https://47.98.16.128:3102) | 生产客户端凭证 |
-| 最不适合推荐 | [https://47.98.16.128:3103](https://47.98.16.128:3103) | 生产客户端凭证 |
-| 站主报告 | `https://47.98.16.128:3104` | 来源 IP 白名单及站主凭证 |
+| Product uploads | [https://47.98.16.128:3101](https://47.98.16.128:3101) | Production client credentials |
+| Most suitable recommendations | [https://47.98.16.128:3102](https://47.98.16.128:3102) | Production client credentials |
+| Least suitable recommendations | [https://47.98.16.128:3103](https://47.98.16.128:3103) | Production client credentials |
+| Owner reports | `https://47.98.16.128:3104` | Source IP allowlist and owner credentials |
 
-以上地址是 API 基址，需要结合下文的请求方法和路径调用。上传与推荐服务在未提供有效凭证时返回 HTTP `401`；站主报告端口仅允许白名单来源连接。源码开源不代表获得生产实例的访问凭证。需要生产账户时，请私下向维护者申请；自行部署并配置自己的百炼账户和密钥后，可以使用完整功能。
+These are API base URLs; use the methods and paths documented below. Upload and recommendation endpoints return HTTP `401` without valid credentials. The owner report port accepts connections only from allowlisted sources. Access to the open-source code does not grant credentials for the production instance. Request a production account privately from the maintainer. You can use all features by deploying your own instance with your own Model Studio account and credentials.
 
-2026-10-13 已验证上述上传与推荐端口的 HTTPS 证书及无凭证 `401` 响应。该记录仅表示当时可连接，不代表持续可用性承诺。
+The HTTPS certificates and unauthenticated `401` responses for the upload and recommendation ports were verified on **2026-10-13**. This records connectivity at that time and does not guarantee continued availability.
 
-## 本地快速启动
+## Local quick start
 
-准备 Node.js 24 或更高版本及阿里云百炼 API 密钥，在项目目录运行：
+Install Node.js 24 or later and obtain an Alibaba Cloud Model Studio API key. Clone the repository:
 
 ```sh
 git clone https://github.com/zjlggdss/invisible-market-api.git
 cd invisible-market-api
 ```
 
+Copy the example configuration on Windows:
+
 ```powershell
 Copy-Item .env.example .env
 ```
 
-在 Linux / macOS 中可使用 `cp .env.example .env`。编辑 `.env`，设置两个不同且至少 24 字符的随机密钥 `AGENT_API_KEY`、`OWNER_API_KEY`，填写 `DASHSCOPE_API_KEY`，将自己的百炼 HTTPS 接入地址填入 `DASHSCOPE_BASE_URL`。接入地址说明见[阿里云工作空间专属接入地址](https://help.aliyun.com/en/model-studio/qwen-api-via-openai-chat-completions)。
+On Linux or macOS, use `cp .env.example .env`. Edit `.env` to set distinct random `AGENT_API_KEY` and `OWNER_API_KEY` values, each at least 24 characters long. Set `DASHSCOPE_API_KEY` and enter your Model Studio HTTPS endpoint in `DASHSCOPE_BASE_URL`. See the [Alibaba Cloud workspace endpoint documentation](https://help.aliyun.com/en/model-studio/qwen-api-via-openai-chat-completions) for the endpoint format.
 
 ```sh
 npm ci
@@ -44,62 +46,70 @@ npm test
 npm start
 ```
 
-测试使用虚拟 AI 和临时数据库，不调用百炼，也不需要生产凭证。可用以下命令生成一个随机密钥，运行两次分别填写客户端和站主密钥：
+Tests use a fake AI provider and temporary databases. They do not call Model Studio or require production credentials. Generate a random key with the following command; run it twice to create separate client and owner keys:
 
 ```sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-默认仅监听 `127.0.0.1`，运行后按下文接口说明携带本地配置的凭证调用。需要对外服务时，在网关/TLS 后配置 `HOST=0.0.0.0`，并仅开放所需端口。
+The service listens on `127.0.0.1` by default. Call the endpoints below using the credentials from your local configuration. To expose an instance, set `HOST=0.0.0.0` behind a gateway with TLS and open only the required ports.
 
-## Docker 部署
+## Docker deployment
 
-仓库提供 `Dockerfile` 和 `compose.yaml`，通过 Nginx 提供四个 HTTPS 端口。先配置 `.env`、持久化数据目录和 TLS 证书，再运行：
+The repository includes a `Dockerfile` and `compose.yaml`. Nginx exposes four HTTPS ports. Configure `.env`, the persistent data directory, and TLS certificates before starting the stack:
 
 ```sh
 docker compose up -d --build
 ```
 
-证书挂载、端口限制和阿里云 ECS 部署步骤见 [deploy/README.md](deploy/README.md)。当前阿里云实例采用 Node.js + systemd + Nginx 部署。
+See [deploy/README.md](deploy/README.md) for certificate mounts, port restrictions, and Alibaba Cloud ECS deployment instructions. The current Alibaba Cloud instance uses Node.js, systemd, and Nginx.
 
-## 配置与客户端管理
+## Configuration and client management
 
-如需单独验证视觉模型连接，运行 `node --env-file=.env scripts/smoke-vision.js`。它只发送一张程序生成的测试图，不会创建商品。
+To check the vision model connection separately, run `node --env-file=.env scripts/smoke-vision.js`. It sends one programmatically generated test image and does not create a product.
 
-`.env` 和 `data/` 不应提交到版本库。建议为四个端口配置 HTTPS 反向代理。`AGENT_API_KEY` 是兼容旧客户端的初始密钥；`OWNER_API_KEY` 只给站主。密钥能认证调用方，却无法从网络层证明调用程序一定是 AI；实际接入时应由受控的 AI 代理保管密钥，不要交给最终用户或浏览器。
+Do not commit `.env` or `data/`. Configure an HTTPS reverse proxy for externally accessible ports. `AGENT_API_KEY` provides an initial credential for legacy clients; `OWNER_API_KEY` is reserved for the owner. Credentials authenticate callers but cannot prove that a caller is an AI program. Keep credentials with controlled AI agents, rather than sharing them with end users or embedding them in browsers.
 
-生产环境建议为每个受控 AI 客户端单独签发密钥：在服务器的 `/opt/invisible-market` 目录执行 `node --env-file=.env scripts/manage-clients.js create 客户端名称`；只在创建时显示一次密钥。使用 `list` 查看客户端 ID，使用 `disable ID` 立即撤销，必要时用 `enable ID` 恢复。迁移完旧客户端后，可以 `disable legacy`。不要把密钥写进日志、聊天或公开文件。默认每个客户端每天最多创建 20 个上传草稿、请求 200 次推荐，每分钟最多 60 次接口请求；可通过 `UPLOADS_PER_DAY`、`RECOMMENDATIONS_PER_DAY`、`AGENT_REQUESTS_PER_MINUTE` 调整。AI 并发默认为 4，可通过 `MAX_CONCURRENT_AI` 调整。
+In production, issue a separate key to each controlled AI client. From `/opt/invisible-market` on the server, run:
 
-默认端口：
+```sh
+node --env-file=.env scripts/manage-clients.js create client-name
+```
 
-| 端口 | 用途 | 凭证 |
+The key is displayed only once, when created. Use `list` to view client IDs, `disable ID` to revoke access immediately, and `enable ID` to restore it when needed. After migrating legacy clients, use `disable legacy` to disable the shared credential. Keep keys out of logs, chats, and public files.
+
+Each client is limited by default to 20 upload drafts per day, 200 recommendations per day, and 60 API requests per minute. Adjust these limits with `UPLOADS_PER_DAY`, `RECOMMENDATIONS_PER_DAY`, and `AGENT_REQUESTS_PER_MINUTE`. The default AI concurrency limit is 4; change it with `MAX_CONCURRENT_AI`.
+
+Default ports:
+
+| Port | Purpose | Credential |
 | --- | --- | --- |
-| 3101 | 上传商品草稿、确认入库 | `AGENT_API_KEY` |
-| 3102 | 下载最适合商品、提交反馈 | `AGENT_API_KEY` |
-| 3103 | 下载最不适合商品、提交反馈 | `AGENT_API_KEY` |
-| 3104 | 下载周报、手动触发上周报告 | `OWNER_API_KEY` |
+| 3101 | Create product drafts and confirm catalog entries | `AGENT_API_KEY` or an individual client key |
+| 3102 | Retrieve the most suitable product and submit feedback | `AGENT_API_KEY` or an individual client key |
+| 3103 | Retrieve the least suitable product and submit feedback | `AGENT_API_KEY` or an individual client key |
+| 3104 | Retrieve weekly reports and generate last week's report | `OWNER_API_KEY` |
 
-所有请求使用 `Authorization: Bearer <密钥>`。请求与响应为 UTF-8 JSON；图片用 Base64 传输。仅接受可完整解码的 JPEG、PNG、WebP，单张最多 5 MB，整批最多 40 MB，像素不超过 2400 万；入库前会重新编码并移除元数据。外观照片至少 3 张、最多 12 张，不能重复；第 4 至第 6 张及更多照片均为选填。内腔照片可选，最多 4 张。
+All requests use `Authorization: Bearer <key>`. Requests and responses use UTF-8 JSON; images are transferred as Base64. Accepted formats are fully decodable JPEG, PNG, and WebP, with a maximum of 5 MB per image, 40 MB per batch, and 24 million pixels per image. Images are re-encoded and metadata is removed before storage. Provide 3 to 12 distinct exterior photos; photos beyond the first 3 are optional. Interior photos are optional, with a maximum of 4.
 
-## 端口 1：上传与确认
+## Port 1: Uploads and confirmation
 
 `POST /products/drafts`
 
 ```json
 {
   "exterior_images": [
-    {"mime_type": "image/jpeg", "data_base64": "<照片1>"},
-    {"mime_type": "image/jpeg", "data_base64": "<照片2>"},
-    {"mime_type": "image/jpeg", "data_base64": "<照片3>"}
+    {"mime_type": "image/jpeg", "data_base64": "<photo-1>"},
+    {"mime_type": "image/jpeg", "data_base64": "<photo-2>"},
+    {"mime_type": "image/jpeg", "data_base64": "<photo-3>"}
   ],
   "interior_images": [],
-  "description": "可选的商品描述",
+  "description": "Optional product description",
   "price_usd": 29.99,
-  "location": "可选的商品所在地"
+  "location": "Optional product location"
 }
 ```
 
-`description` 与 `price_usd` 可省略。省略时，响应返回 `proposed_description`、`proposed_price_usd` 和 `draft_id`，等待用户确认。AI 认为商品有内腔且未收到内腔照片时，`interior_image_suggested` 为 `true`。草稿 24 小时过期；确认前商品不入库。
+`description` and `price_usd` are optional. If omitted, the response includes `proposed_description`, `proposed_price_usd`, and `draft_id` for confirmation. If the AI identifies an interior cavity and no interior photos were supplied, `interior_image_suggested` is `true`. Drafts expire after 24 hours. A product is not added to the catalog until confirmed.
 
 `POST /products/drafts/{draft_id}/confirm`
 
@@ -112,52 +122,56 @@ docker compose up -d --build
 }
 ```
 
-若拒绝建议描述，发送 `"accept_description": false` 与自己的 `description`；若拒绝参考价格，发送 `"accept_price": false` 与自己的 `price_usd`。卖家最初已提交的描述或价格无需再次确认。自填描述会重新与图片核对。
+To reject the proposed description, send `"accept_description": false` with your own `description`. To reject the reference price, send `"accept_price": false` with your own `price_usd`. A description or price supplied by the seller in the original request does not need confirmation. A replacement description is checked against the images again.
 
-图像元数据出现常见修图软件标记，或模型判断存在明显数字篡改时，返回 HTTP 422、`error.code: 114`、`禁止使用经过PS的照片`。视觉模型无法保证检出所有修图，也可能误判；如需严格的真实照片认证，后续应增加带签名的拍摄来源或人工复核。
+If image metadata contains markers from common editing software, or the model detects obvious digital manipulation, the API returns HTTP `422` with `error.code: 114` and `Digitally edited photos are not allowed`. The vision model can miss edits or flag genuine photos incorrectly. Stronger photo authenticity checks would require signed capture provenance or human review.
 
-## 端口 2 与 3：推荐与反馈
+## Ports 2 and 3: Recommendations and feedback
 
-两个端口使用相同路径：`POST /recommendations`。
-
-```json
-{"user_features": "我26岁，住在上海，喜欢陶瓷制品，预算20美元。"}
-```
-
-输入为自然语言，不会反向向用户索取指定维度。模型仅提取文本里明确给出的特征；可识别维度不足 3 项时返回 HTTP 422、`error.code: 66`。成功时返回一件商品的全部图片 Base64、描述、美元价格，以及一次性 `recommendation_id` 和 `feedback_token`。不返回产品标签或内部用户特征。
-
-在原推荐端口发送 `POST /recommendations/{recommendation_id}/feedback`：
+Both ports use `POST /recommendations`.
 
 ```json
-{"feedback_token": "<上一步返回的令牌>", "result": "适合我"}
+{"user_features": "I am 26, live in Shanghai, enjoy pottery, and have a budget of USD 20."}
 ```
 
-`result` 也可为 `不适合我`。每条推荐只接受一次反馈。推荐主要依据喜好、明确预算、地点和商品受众提示；月收入仅在明确给出美元金额和周期、且缺少预算时用于粗略判断价格负担。性别、年龄、教育程度及 MBTI 仅在标签具有意义时提供较小权重。民族不用于排序，也不存储在推荐记录中。数据库仅保存周报所需的“是否有明确偏好”和“是否超预算”信号，推荐明细保留 90 天；原始用户特征文本不入库。内部商品标签还保存可从图片判断的材质、品相和用途，便于更准确地匹配喜好。
+The input is natural language; the API does not ask the user to supply specific categories. The model extracts only features explicitly stated in the text. Fewer than 3 identifiable feature categories result in HTTP `422` with `error.code: 66` and `Too few user features for an effective recommendation`. A successful response contains all images of one product as Base64, its description and price in USD, and a one-time `recommendation_id` and `feedback_token`. It does not expose product tags or internal user features.
 
-## 端口 4：周报
-
-每周一按北京时间生成上一个完整自然周的报告，启动时也会补齐最近一周。报告仅统计已提交反馈的推荐。
-
-- `GET /reports/latest`：最新报告。
-- `GET /reports/YYYY-MM-DD`：指定周一开始的报告。
-- `POST /reports/run`：立即生成上一个完整自然周的报告；同一周不会重复生成。
-
-报告包含反馈数、准确率、按推荐模式和商品类型的统计，以及预算与喜好错配信号和优化建议。样本较少时会提示准确率不稳定。由于阿里云密钥未包含在项目里，实际模型调用需配置你的百炼账户后才能端到端验证。
-
-## 错误响应
+Submit feedback on the same port that returned the recommendation using `POST /recommendations/{recommendation_id}/feedback`:
 
 ```json
-{"error": {"code": 66, "message": "上传的特征过少，无法进行有效推荐"}}
+{"feedback_token": "<token-from-the-recommendation>", "result": "suitable"}
 ```
 
-常见状态码：400 请求格式错误，401 密钥错误，404 资源不存在，409 草稿已确认，422 内容校验失败，429 调用过频或超额，503 阿里云接口不可用或 AI 输出无效。所有端口无 HTML 页面。
+Set `result` to `suitable` or `unsuitable`. Legacy feedback values remain accepted for compatibility. Each recommendation accepts feedback only once. English feedback values are supported by v1.0.1 and later; existing hosted instances may require an upgrade.
 
-## 阿里云部署
+Recommendations primarily consider preferences, an explicit budget, location, and product audience hints. Monthly income is used only as a rough affordability signal when no budget is given and the income includes an explicit USD amount and period. Gender, age, education, and MBTI have lower weights and are used only when relevant tags are available. Ethnicity is not used for ranking or stored in recommendation records.
 
-服务器系统、四端口 HTTPS 配置、证书与数据迁移步骤见 [deploy/README.md](deploy/README.md)。
+The database stores only the signals needed for weekly reports: whether an explicit preference was supplied and whether the product exceeded the budget. Recommendation details are retained for 90 days; raw user feature text is not stored. Internal product tags also capture visible material, condition, and use to improve preference matching.
 
-## 贡献与许可
+## Port 4: Weekly reports
 
-贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
+Each Monday, using Beijing time, the service generates a report for the previous complete calendar week. It also fills in the latest week's report on startup. Reports include only recommendations with submitted feedback.
 
-源码以 [MIT License](LICENSE) 开源。阿里云服务费用、生产实例访问权限和第三方服务条款由各自的账户及服务约定决定。
+- `GET /reports/latest`: Retrieve the latest report.
+- `GET /reports/YYYY-MM-DD`: Retrieve the report for the week beginning on the specified Monday.
+- `POST /reports/run`: Generate the previous complete calendar week's report immediately. The same week is not generated twice.
+
+Reports include feedback counts, accuracy, breakdowns by recommendation mode and product type, budget and preference mismatch signals, and improvement suggestions. Small samples are flagged because accuracy estimates may be unstable. Alibaba Cloud credentials are not included in the repository; end-to-end verification of real model calls requires your own configured Model Studio account.
+
+## Error responses
+
+```json
+{"error": {"code": 66, "message": "Too few user features for an effective recommendation"}}
+```
+
+Common HTTP status codes: `400` for malformed requests, `401` for invalid credentials, `404` for missing resources, `409` for an already confirmed draft, `422` for content validation failures, `429` for rate or quota limits, and `503` for an unavailable Alibaba Cloud API or invalid AI output. None of the ports serves HTML pages.
+
+## Alibaba Cloud deployment
+
+See [deploy/README.md](deploy/README.md) for server requirements, HTTPS configuration for all four ports, certificates, and data migration.
+
+## Contributing and license
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing. Report security issues privately as described in [SECURITY.md](SECURITY.md).
+
+The source code is available under the [MIT License](LICENSE). Alibaba Cloud charges, production instance access, and third-party service terms are governed by the relevant accounts and service agreements.

@@ -4,13 +4,13 @@ import { configFromEnv, assertProductionConfig } from '../src/config.js';
 
 const paths = process.argv.slice(2);
 if (paths.length < 3 || paths.length > 12) {
-  console.error('用法：node --env-file=.env scripts/upload-photos.js <图片1> <图片2> <图片3> [更多图片]');
+  console.error('Usage: node --env-file=.env scripts/upload-photos.js <image1> <image2> <image3> [more images]');
   process.exit(2);
 }
 const mime = extension => ({ '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' })[extension];
 const exterior_images = paths.map(file => {
   const mime_type = mime(path.extname(file).toLowerCase());
-  if (!mime_type) throw new Error(`不支持的图片格式：${file}`);
+  if (!mime_type) throw new Error(`Unsupported image format: ${file}`);
   return { mime_type, data_base64: fs.readFileSync(file).toString('base64') };
 });
 const config = configFromEnv();
